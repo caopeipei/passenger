@@ -87,7 +87,9 @@ generated_set_conf_part(passenger_loc_conf_t  *conf) {
     conf->union_station_key.data = NULL;
     conf->union_station_key.len  = 0;
     conf->max_request_queue_size = NGX_CONF_UNSET;
+    conf->max_request_queue_time = NGX_CONF_UNSET;
     conf->request_queue_overflow_status_code = NGX_CONF_UNSET;
+    conf->request_queue_timeout_status_code = NGX_CONF_UNSET;
     conf->restart_dir.data = NULL;
     conf->restart_dir.len  = 0;
     conf->app_type.data = NULL;

@@ -251,12 +251,32 @@ generated_cache_location_part(ngx_conf_t *cf, passenger_loc_conf_t *conf) {
         len += sizeof("\r\n") - 1;
     }
 
+    if (conf->max_request_queue_time != NGX_CONF_UNSET) {
+        end = ngx_snprintf(int_buf,
+            sizeof(int_buf) - 1,
+            "%d",
+            conf->max_request_queue_time);
+        len += sizeof("!~PASSENGER_MAX_REQUEST_QUEUE_TIME: ") - 1;
+        len += end - int_buf;
+        len += sizeof("\r\n") - 1;
+    }
+
     if (conf->request_queue_overflow_status_code != NGX_CONF_UNSET) {
         end = ngx_snprintf(int_buf,
             sizeof(int_buf) - 1,
             "%d",
             conf->request_queue_overflow_status_code);
         len += sizeof("!~PASSENGER_REQUEST_QUEUE_OVERFLOW_STATUS_CODE: ") - 1;
+        len += end - int_buf;
+        len += sizeof("\r\n") - 1;
+    }
+
+    if (conf->request_queue_timeout_status_code != NGX_CONF_UNSET) {
+        end = ngx_snprintf(int_buf,
+            sizeof(int_buf) - 1,
+            "%d",
+            conf->request_queue_timeout_status_code);
+        len += sizeof("!~PASSENGER_REQUEST_QUEUE_TIMEOUT_STATUS_CODE: ") - 1;
         len += end - int_buf;
         len += sizeof("\r\n") - 1;
     }
@@ -587,6 +607,17 @@ generated_cache_location_part(ngx_conf_t *cf, passenger_loc_conf_t *conf) {
         pos = ngx_copy(pos, int_buf, end - int_buf);
         pos = ngx_copy(pos, (const u_char *) "\r\n", sizeof("\r\n") - 1);
     }
+    if (conf->max_request_queue_time != NGX_CONF_UNSET) {
+        pos = ngx_copy(pos,
+            "!~PASSENGER_MAX_REQUEST_QUEUE_TIME: ",
+            sizeof("!~PASSENGER_MAX_REQUEST_QUEUE_TIME: ") - 1);
+        end = ngx_snprintf(int_buf,
+            sizeof(int_buf) - 1,
+            "%d",
+            conf->max_request_queue_time);
+        pos = ngx_copy(pos, int_buf, end - int_buf);
+        pos = ngx_copy(pos, (const u_char *) "\r\n", sizeof("\r\n") - 1);
+    }
     if (conf->request_queue_overflow_status_code != NGX_CONF_UNSET) {
         pos = ngx_copy(pos,
             "!~PASSENGER_REQUEST_QUEUE_OVERFLOW_STATUS_CODE: ",
@@ -595,6 +626,17 @@ generated_cache_location_part(ngx_conf_t *cf, passenger_loc_conf_t *conf) {
             sizeof(int_buf) - 1,
             "%d",
             conf->request_queue_overflow_status_code);
+        pos = ngx_copy(pos, int_buf, end - int_buf);
+        pos = ngx_copy(pos, (const u_char *) "\r\n", sizeof("\r\n") - 1);
+    }
+    if (conf->request_queue_timeout_status_code != NGX_CONF_UNSET) {
+        pos = ngx_copy(pos,
+            "!~PASSENGER_REQUEST_QUEUE_TIMEOUT_STATUS_CODE: ",
+            sizeof("!~PASSENGER_REQUEST_QUEUE_TIMEOUT_STATUS_CODE: ") - 1);
+        end = ngx_snprintf(int_buf,
+            sizeof(int_buf) - 1,
+            "%d",
+            conf->request_queue_timeout_status_code);
         pos = ngx_copy(pos, int_buf, end - int_buf);
         pos = ngx_copy(pos, (const u_char *) "\r\n", sizeof("\r\n") - 1);
     }

@@ -73,6 +73,9 @@ addHeader(r, result, StaticString("!~PASSENGER_START_TIMEOUT",
 addHeader(r, result, StaticString("!~PASSENGER_MAX_REQUEST_QUEUE_SIZE",
 		sizeof("!~PASSENGER_MAX_REQUEST_QUEUE_SIZE") - 1),
 	config->maxRequestQueueSize);
+addHeader(r, result, StaticString("!~PASSENGER_MAX_REQUEST_QUEUE_TIME",
+		sizeof("!~PASSENGER_MAX_REQUEST_QUEUE_TIME") - 1),
+	config->maxRequestQueueTime);
 addHeader(r, result, StaticString("!~PASSENGER_MAX_PRELOADER_IDLE_TIME",
 		sizeof("!~PASSENGER_MAX_PRELOADER_IDLE_TIME") - 1),
 	config->maxPreloaderIdleTime);

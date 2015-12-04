@@ -111,6 +111,11 @@ struct GeneratedDirConfigPart {
 	int maxRequestQueueSize;
 
 	/*
+	 * The maximum number of seconds that a request may remain in the queue before it is dropped.
+	 */
+	int maxRequestQueueTime;
+
+	/*
 	 * The maximum number of requests that an application instance may process.
 	 */
 	int maxRequests;
