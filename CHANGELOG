@@ -3,6 +3,7 @@ Next version (not yet released)
 
  * Improve curl check for passenger-install- scripts to catch (very old) curl versions that won't compile against 5.1+.
  * Fixes remaining false positives (logging) from the new Meteor cluster warning system. Closes GH-1905.
+ * Fixes `passenger-memory-stats` incorrectly excluding JRuby processes. Closes GH-1878.
 
 
 Release 5.1.1
