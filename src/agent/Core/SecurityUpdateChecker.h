@@ -18,6 +18,11 @@
 #include <Utils/Curl.h>
 #include <modp_b64.h>
 
+#if BOOST_OS_MACOS
+#include <sys/syslimits.h>
+#include <unistd.h>
+#endif
+
 namespace Passenger {
 
 using namespace std;
@@ -54,6 +59,11 @@ private:
 	string serverVersion;
 	CurlProxyInfo proxyInfo;
 	Crypto *crypto;
+#if BOOST_OS_MACOS
+	SecKeychainRef defaultKeychain;
+	SecKeychainRef keychain;
+	bool usingPassengerKeychain;
+#endif
 
 	void threadMain() {
 		TRACE_POINT();
@@ -217,7 +227,7 @@ private:
 		}
 
 #if BOOST_OS_MACOS
-		if (!crypto->preAuthKey(clientCertPath.c_str(), CLIENT_CERT_PWD, CLIENT_CERT_LABEL)) {
+		if (!usingPassengerKeychain && !crypto->preAuthKey(clientCertPath.c_str(), CLIENT_CERT_PWD, CLIENT_CERT_LABEL)) {
 			return CURLE_SSL_CERTPROBLEM;
 		}
 		if (CURLE_OK != (code = curl_easy_setopt(curl, CURLOPT_SSLCERTTYPE, "P12"))) {
@@ -281,12 +291,77 @@ public:
 	 * serverIntegration should be one of { nginx, apache, standalone nginx, standalone builtin }, whereby
 	 * serverVersion is the version of Nginx or Apache, if relevant (otherwise empty)
 	 */
-	SecurityUpdateChecker(const ResourceLocator &locator, const string &proxy, const string &serverIntegration, const string &serverVersion) {
+	SecurityUpdateChecker(const ResourceLocator &locator, const string &proxy, const string &serverIntegration, const string &serverVersion, const string &instancePath) {
 		crypto = new Crypto();
 		updateCheckThread = NULL;
 		checkIntervalSec = 0;
 #if BOOST_OS_MACOS
 		clientCertPath = locator.getResourcesDir() + "/update_check_client_cert.p12";
+		usingPassengerKeychain = false;
+		defaultKeychain = NULL;
+		keychain = NULL;
+		OSStatus status = 0;
+
+		status = SecKeychainCopyDefault(&defaultKeychain);
+		if (status) {
+			CFStringRef str = SecCopyErrorMessageString(status, NULL);
+			P_ERROR(string("Getting default keychain failed: ") +
+					 CFStringGetCStringPtr(str, kCFStringEncodingUTF8) +
+					 " Passenger will fail to reset default keychain.");
+			CFRelease(str);
+		}
+
+		char pathName [PATH_MAX];
+		UInt32 length = PATH_MAX;
+		status = SecKeychainGetPath(defaultKeychain, &length, pathName);
+		P_DEBUG(string("Old default keychain is: ") + pathName);
+		P_DEBUG(string("username is: ") + getProcessUsername());
+		if (status) {
+			CFStringRef str = SecCopyErrorMessageString(status, NULL);
+			P_ERROR(string("Checking default keychain path failed: ") +
+					 CFStringGetCStringPtr(str, kCFStringEncodingUTF8) +
+					 " Passenger may override user keychain.");
+			CFRelease(str);
+		}
+		if (strcmp(pathName, "/Library/Keychains/System.keychain") == 0) {
+			usingPassengerKeychain = true;
+			const uint size = 512;
+			uint8_t bytes[size];
+			if (!crypto->generateRandomChars(bytes, size)) {
+				P_ERROR("Creating password for Passenger default keychain failed.");
+			}
+			string keychainDir = instancePath;
+			if (instancePath.length() == 0) {
+				char currentPath[PATH_MAX];
+				if (!getcwd(currentPath, PATH_MAX)) {
+					P_ERROR(string("Failed to get cwd: ") + strerror(errno));
+					keychainDir = ".";
+				} else {
+					keychainDir = string(currentPath);
+				}
+			}
+			status = SecKeychainCreate((keychainDir + "/passenger.keychain").c_str(), size, bytes, false, NULL, &keychain);
+			memset(bytes, 0, size);
+			if (status) {
+				CFStringRef str = SecCopyErrorMessageString(status, NULL);
+				P_ERROR(string("Creating Passenger default keychain failed: ") +
+						CFStringGetCStringPtr(str, kCFStringEncodingUTF8) +
+						" System Apache may fail to access system keychain.");
+				CFRelease(str);
+			}
+
+			status = SecKeychainSetDefault(keychain);
+			if (status) {
+				CFStringRef str = SecCopyErrorMessageString(status, NULL);
+				P_ERROR(string("Setting Passenger default keychain failed: ") +
+						CFStringGetCStringPtr(str, kCFStringEncodingUTF8) +
+						" System Apache may fail to access system keychain.");
+				CFRelease(str);
+			}
+			if (!crypto->preAuthKey(clientCertPath.c_str(), CLIENT_CERT_PWD, CLIENT_CERT_LABEL)) {
+				P_ERROR("Failed to preauthorize Passenger Client Cert, you may experience popups from the Keychain.");
+			}
+		}
 #else
 		clientCertPath = locator.getResourcesDir() + "/update_check_client_cert.pem";
 #endif
@@ -312,6 +387,31 @@ public:
 		if (crypto) {
 			delete crypto;
 		}
+#if BOOST_OS_MACOS
+		if (usingPassengerKeychain) {
+			OSStatus status = 0;
+			if (defaultKeychain) {
+				status = SecKeychainSetDefault(defaultKeychain);
+				if (status) {
+					CFStringRef str = SecCopyErrorMessageString(status, NULL);
+					P_ERROR(string("Restoring default keychain failed: ") +
+							CFStringGetCStringPtr(str, kCFStringEncodingUTF8));
+					CFRelease(str);
+				}
+				CFRelease(defaultKeychain);
+			}
+			if (keychain) {
+				status = SecKeychainDelete(keychain);
+				if (status) {
+					CFStringRef str = SecCopyErrorMessageString(status, NULL);
+					P_ERROR(string("Deleting Passenger default keychain failed: ") +
+							CFStringGetCStringPtr(str, kCFStringEncodingUTF8));
+					CFRelease(str);
+				}
+				CFRelease(keychain);
+			}
+		}
+#endif
 	}
 
 	/**
@@ -544,7 +644,9 @@ public:
 		} while (0);
 
 #if BOOST_OS_MACOS
-		crypto->killKey(CLIENT_CERT_LABEL);
+		if (!usingPassengerKeychain) {
+			crypto->killKey(CLIENT_CERT_LABEL);
+		}
 #endif
 
 		if (signatureChars) {

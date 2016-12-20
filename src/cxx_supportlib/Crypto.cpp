@@ -114,6 +114,9 @@ OSStatus Crypto::copyIdentityFromPKCS12File(const char *cPath,
 											const char *cPassword,
 											const char *cLabel) {
 	OSStatus status = errSecItemNotFound;
+	if (strlen(cPath) == 0) {
+		return errSecMissingValue;
+	}
 	CFURLRef url = CFURLCreateFromFileSystemRepresentation(NULL,
 														   (const UInt8 *) cPath, strlen(cPath), false);
 	CFStringRef password = cPassword ? CFStringCreateWithCString(NULL,
