@@ -64,6 +64,7 @@ namespace tut {
 			options.setInt("min_instances", 1);
 			options.setInt("max_preloader_idle_time", DEFAULT_MAX_PRELOADER_IDLE_TIME);
 			options.setInt("max_request_queue_size", DEFAULT_MAX_REQUEST_QUEUE_SIZE);
+			options.setInt("max_request_queue_time", DEFAULT_MAX_REQUEST_QUEUE_TIME);
 			options.setBool("abort_websockets_on_process_shutdown", true);
 			options.setInt("force_max_concurrent_requests_per_process", -1);
 			options.set("spawn_method", DEFAULT_SPAWN_METHOD);

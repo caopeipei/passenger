@@ -296,6 +296,7 @@ DEFINE_SERVER_INT_CONFIG_SETTER(cmd_passenger_socket_backlog, socketBacklog, uns
 DEFINE_SERVER_STR_CONFIG_SETTER(cmd_passenger_file_descriptor_log_file, fileDescriptorLogFile)
 DEFINE_SERVER_INT_CONFIG_SETTER(cmd_passenger_max_pool_size, maxPoolSize, unsigned int, 1)
 DEFINE_SERVER_INT_CONFIG_SETTER(cmd_passenger_pool_idle_time, poolIdleTime, unsigned int, 0)
+DEFINE_SERVER_INT_CONFIG_SETTER(cmd_passenger_request_queue_time, requestQueueTime, unsigned int, 0)
 DEFINE_SERVER_INT_CONFIG_SETTER(cmd_passenger_response_buffer_high_watermark, responseBufferHighWatermark, unsigned int, 0)
 DEFINE_SERVER_INT_CONFIG_SETTER(cmd_passenger_stat_throttle_rate, statThrottleRate, unsigned int, 0)
 DEFINE_SERVER_BOOLEAN_CONFIG_SETTER(cmd_passenger_user_switching, userSwitching)
@@ -481,6 +482,11 @@ const command_rec passenger_commands[] = {
 		NULL,
 		RSRC_CONF,
 		"The maximum number of seconds that an application may be idle before it gets terminated."),
+	AP_INIT_TAKE1("PassengerRequestQueueTime",
+		(Take1Func) cmd_passenger_request_queue_time,
+		NULL,
+		RSRC_CONF,
+		"The maximum number of seconds that a request may be in the queue before it gets terminated."),
 	AP_INIT_TAKE1("PassengerResponseBufferHighWatermark",
 		(Take1Func) cmd_passenger_response_buffer_high_watermark,
 		NULL,
