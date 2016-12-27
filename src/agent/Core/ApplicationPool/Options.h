@@ -640,7 +640,6 @@ public:
 			appendKeyValue3(vec, "max_processes",       maxProcesses);
 			appendKeyValue2(vec, "max_preloader_idle_time", maxPreloaderIdleTime);
 			appendKeyValue3(vec, "max_out_of_band_work_instances", maxOutOfBandWorkInstances);
-			appendKeyValue2(vec, "max_request_queue_time", maxRequestQueueTime);
 		}
 		if ((fields & SPAWN_OPTIONS) || (fields & PER_GROUP_POOL_OPTIONS)) {
 			appendKeyValue (vec, "union_station_key",   unionStationKey);

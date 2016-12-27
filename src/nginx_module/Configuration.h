@@ -48,7 +48,6 @@ typedef struct {
     ngx_flag_t   abort_on_startup_error;
     ngx_uint_t   max_pool_size;
     ngx_uint_t   pool_idle_time;
-    ngx_uint_t   request_queue_time;
     ngx_uint_t   response_buffer_high_watermark;
     ngx_uint_t   stat_throttle_rate;
     ngx_uint_t   core_file_descriptor_ulimit;

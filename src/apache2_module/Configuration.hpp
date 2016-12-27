@@ -179,10 +179,6 @@ struct ServerConfig {
 	 * idle before it gets terminated. */
 	unsigned int poolIdleTime;
 
-	/** The maximum number of seconds that a request may be
-	 * queued before it gets terminated. */
-	unsigned int requestQueueTime;
-
 	unsigned int responseBufferHighWatermark;
 
 	unsigned int statThrottleRate;
@@ -224,7 +220,6 @@ struct ServerConfig {
 		socketBacklog      = DEFAULT_SOCKET_BACKLOG;
 		maxPoolSize        = DEFAULT_MAX_POOL_SIZE;
 		poolIdleTime       = DEFAULT_POOL_IDLE_TIME;
-		requestQueueTime   = DEFAULT_MAX_REQUEST_QUEUE_TIME;
 		responseBufferHighWatermark = DEFAULT_RESPONSE_BUFFER_HIGH_WATERMARK;
 		statThrottleRate   = DEFAULT_STAT_THROTTLE_RATE;
 		userSwitching      = true;

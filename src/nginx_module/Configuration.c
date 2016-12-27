@@ -120,7 +120,6 @@ passenger_create_main_conf(ngx_conf_t *cf)
     conf->abort_on_startup_error = NGX_CONF_UNSET;
     conf->max_pool_size = NGX_CONF_UNSET_UINT;
     conf->pool_idle_time = NGX_CONF_UNSET_UINT;
-    conf->request_queue_time = NGX_CONF_UNSET_UINT;
     conf->response_buffer_high_watermark = NGX_CONF_UNSET_UINT;
     conf->stat_throttle_rate = NGX_CONF_UNSET_UINT;
     conf->core_file_descriptor_ulimit = NGX_CONF_UNSET_UINT;
@@ -210,10 +209,6 @@ passenger_init_main_conf(ngx_conf_t *cf, void *conf_pointer)
 
     if (conf->pool_idle_time == NGX_CONF_UNSET_UINT) {
         conf->pool_idle_time = DEFAULT_POOL_IDLE_TIME;
-    }
-
-    if (conf->request_queue_time == NGX_CONF_UNSET_UINT) {
-        conf->request_queue_time = DEFAULT_REQUEST_QUEUE_TIME;
     }
 
     if (conf->response_buffer_high_watermark == NGX_CONF_UNSET_UINT) {
@@ -1542,13 +1537,6 @@ const ngx_command_t passenger_commands[] = {
       ngx_conf_set_num_slot,
       NGX_HTTP_MAIN_CONF_OFFSET,
       offsetof(passenger_main_conf_t, pool_idle_time),
-      NULL },
-
-    { ngx_string("passenger_request_queue_time"),
-      NGX_HTTP_MAIN_CONF | NGX_CONF_TAKE1,
-      ngx_conf_set_num_slot,
-      NGX_HTTP_MAIN_CONF_OFFSET,
-      offsetof(passenger_main_conf_t, request_queue_time),
       NULL },
 
     { ngx_string("passenger_response_buffer_high_watermark"),
