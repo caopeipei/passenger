@@ -337,9 +337,8 @@ Controller::determineHeaderSizeForSessionProtocol(Request *req,
 			int outLength = -1;
 			char *output = curl_easy_unescape(state.curl, state.path.c_str(), state.path.size(), &outLength);
 			if(output && outLength >= 0) {
-				char *buffer = (char *) psg_pnalloc(req->pool, outLength+1);
+				char *buffer = (char *) psg_pnalloc(req->pool, outLength);
 				memcpy(buffer, output, outLength);
-				buffer[outLength] = 0;
 				state.path = StaticString(buffer, outLength);
 				curl_free(output);
 			} else {
