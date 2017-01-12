@@ -326,6 +326,7 @@ public:
 	void verifyExpensiveInvariants() const;
 	void fullVerifyInvariants() const;
 	void assignSessionsToGetWaiters(boost::container::vector<Callback> &postLockActions);
+	bool requestTimedOut(const GetWaiter &waiter);
 	template<typename Queue> static void assignExceptionToGetWaiters(Queue &getWaitlist,
 		const ExceptionPtr &exception,
 		boost::container::vector<Callback> &postLockActions);

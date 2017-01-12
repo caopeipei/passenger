@@ -261,6 +261,11 @@ Group::assignSessionsToGetWaitersQuickly(Lock &lock) {
 
 	while (!done && i < getWaitlist.size()) {
 		const GetWaiter &waiter = getWaitlist[i];
+		if (requestTimedOut(waiter)) {
+			waiter.callback.call(waiter.callback, SessionPtr(), boost::make_shared<RequestQueueTimeoutException>(options.maxRequestQueueTime));
+			getWaitlist.erase(getWaitlist.begin() + i);
+			continue;
+		}
 		RouteResult result = route(waiter.options);
 		if (result.process != NULL) {
 			GetAction action;

@@ -149,12 +149,17 @@ Pool::fullVerifyInvariants() const {
  */
 void
 Pool::assignSessionsToGetWaiters(boost::container::vector<Callback> &postLockActions) {
-	bool done = false;
-	vector<GetWaiter>::iterator it, end = getWaitlist.end();
+	vector<GetWaiter>::iterator it = getWaitlist.begin();
 	vector<GetWaiter> newWaitlist;
 
-	for (it = getWaitlist.begin(); it != end && !done; it++) {
+	while (it != getWaitlist.end()) {
 		GetWaiter &waiter = *it;
+
+		if (requestTimedOut(waiter)) {
+			waiter.callback.call(waiter.callback, SessionPtr(), boost::make_shared<RequestQueueTimeoutException>(waiter.options.maxRequestQueueTime));
+			getWaitlist.erase(it);
+			continue;
+		}
 
 		Group *group = findMatchingGroup(waiter.options);
 		if (group != NULL) {
@@ -176,9 +181,16 @@ Pool::assignSessionsToGetWaiters(boost::container::vector<Callback> &postLockAct
 			 */
 			newWaitlist.push_back(waiter);
 		}
+		it++;
 	}
 
 	std::swap(getWaitlist, newWaitlist);
+}
+
+bool
+Pool::requestTimedOut(const GetWaiter &waiter) {
+	posix_time::time_duration diff = boost::posix_time::microsec_clock::local_time() - waiter.startTime;
+	return(! OXT_LIKELY( (waiter.options.maxRequestQueueTime == 0) || (diff.total_milliseconds() < waiter.options.maxRequestQueueTime) ));
 }
 
 template<typename Queue>
