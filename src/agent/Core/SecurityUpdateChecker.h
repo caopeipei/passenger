@@ -301,65 +301,70 @@ public:
 		defaultKeychain = NULL;
 		keychain = NULL;
 		OSStatus status = 0;
+		char pathName [PATH_MAX];
+		UInt32 length = PATH_MAX;
+		memset(pathName, 0, PATH_MAX);
 
 		status = SecKeychainCopyDefault(&defaultKeychain);
 		if (status) {
 			CFStringRef str = SecCopyErrorMessageString(status, NULL);
 			P_ERROR(string("Getting default keychain failed: ") +
-					 CFStringGetCStringPtr(str, kCFStringEncodingUTF8) +
-					 " Passenger will fail to reset default keychain.");
+					CFStringGetCStringPtr(str, kCFStringEncodingUTF8) +
+					" Passenger will not attempt to create a private keychain.");
 			CFRelease(str);
-		}
-
-		char pathName [PATH_MAX];
-		UInt32 length = PATH_MAX;
-		status = SecKeychainGetPath(defaultKeychain, &length, pathName);
-		P_DEBUG(string("Old default keychain is: ") + pathName);
-		P_DEBUG(string("username is: ") + getProcessUsername());
-		if (status) {
-			CFStringRef str = SecCopyErrorMessageString(status, NULL);
-			P_ERROR(string("Checking default keychain path failed: ") +
-					 CFStringGetCStringPtr(str, kCFStringEncodingUTF8) +
-					 " Passenger may override user keychain.");
-			CFRelease(str);
+		} else {
+			status = SecKeychainGetPath(defaultKeychain, &length, pathName);
+			P_DEBUG(string("username is: ") + getProcessUsername());
+			if (status) {
+				CFStringRef str = SecCopyErrorMessageString(status, NULL);
+				P_ERROR(string("Checking default keychain path failed: ") +
+						CFStringGetCStringPtr(str, kCFStringEncodingUTF8) +
+						" Passenger may use system keychain.");
+				CFRelease(str);
+			} else {
+				P_DEBUG(string("Old default keychain is: ") + pathName);
+			}
 		}
 		if (strcmp(pathName, "/Library/Keychains/System.keychain") == 0) {
 			usingPassengerKeychain = true;
 			const uint size = 512;
-			uint8_t bytes[size];
-			if (!crypto->generateRandomChars(bytes, size)) {
-				P_ERROR("Creating password for Passenger default keychain failed.");
-			}
-			string keychainDir = instancePath;
-			if (instancePath.length() == 0) {
-				char currentPath[PATH_MAX];
-				if (!getcwd(currentPath, PATH_MAX)) {
-					P_ERROR(string("Failed to get cwd: ") + strerror(errno));
-					keychainDir = ".";
-				} else {
-					keychainDir = string(currentPath);
+			uint8_t keychainPassword[size];
+			if (!crypto->generateRandomChars(keychainPassword, size)) {
+				P_CRITICAL("Creating password for Passenger default keychain failed.");
+				usingPassengerKeychain = false;
+			} else {
+				string keychainDir = instancePath;
+				if (instancePath.length() == 0) {
+					char currentPath[PATH_MAX];
+					if (!getcwd(currentPath, PATH_MAX)) {
+						P_ERROR(string("Failed to get cwd: ") + strerror(errno) + " Attempting to use relative path '.'");
+						keychainDir = ".";
+					} else {
+						keychainDir = string(currentPath);
+					}
 				}
-			}
-			status = SecKeychainCreate((keychainDir + "/passenger.keychain").c_str(), size, bytes, false, NULL, &keychain);
-			memset(bytes, 0, size);
-			if (status) {
-				CFStringRef str = SecCopyErrorMessageString(status, NULL);
-				P_ERROR(string("Creating Passenger default keychain failed: ") +
-						CFStringGetCStringPtr(str, kCFStringEncodingUTF8) +
-						" System Apache may fail to access system keychain.");
-				CFRelease(str);
-			}
-
-			status = SecKeychainSetDefault(keychain);
-			if (status) {
-				CFStringRef str = SecCopyErrorMessageString(status, NULL);
-				P_ERROR(string("Setting Passenger default keychain failed: ") +
-						CFStringGetCStringPtr(str, kCFStringEncodingUTF8) +
-						" System Apache may fail to access system keychain.");
-				CFRelease(str);
-			}
-			if (!crypto->preAuthKey(clientCertPath.c_str(), CLIENT_CERT_PWD, CLIENT_CERT_LABEL)) {
-				P_ERROR("Failed to preauthorize Passenger Client Cert, you may experience popups from the Keychain.");
+				status = SecKeychainCreate((keychainDir + "/passenger.keychain").c_str(), size, keychainPassword, false, NULL, &keychain);
+				memset(keychainPassword, 0, size);
+				if (status) {
+					CFStringRef str = SecCopyErrorMessageString(status, NULL);
+					P_ERROR(string("Creating Passenger default keychain failed: ") +
+							CFStringGetCStringPtr(str, kCFStringEncodingUTF8) +
+							" Passenger may fail to access system keychain.");
+					CFRelease(str);
+					usingPassengerKeychain = false;
+				} else {
+					status = SecKeychainSetDefault(keychain);
+					if (status) {
+						CFStringRef str = SecCopyErrorMessageString(status, NULL);
+						P_ERROR(string("Setting Passenger default keychain failed: ") +
+								CFStringGetCStringPtr(str, kCFStringEncodingUTF8) +
+								" Passenger may fail to access system keychain.");
+						CFRelease(str);
+						usingPassengerKeychain = false;
+					} else if (!crypto->preAuthKey(clientCertPath.c_str(), CLIENT_CERT_PWD, CLIENT_CERT_LABEL)) {
+						P_ERROR("Failed to preauthorize Passenger Client Cert, you may experience popups from the Keychain.");
+					}
+				}
 			}
 		}
 #else
@@ -404,7 +409,7 @@ public:
 				status = SecKeychainDelete(keychain);
 				if (status) {
 					CFStringRef str = SecCopyErrorMessageString(status, NULL);
-					P_ERROR(string("Deleting Passenger default keychain failed: ") +
+					P_ERROR(string("Deleting Passenger private keychain failed: ") +
 							CFStringGetCStringPtr(str, kCFStringEncodingUTF8));
 					CFRelease(str);
 				}
