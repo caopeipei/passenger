@@ -187,10 +187,14 @@ Pool::assignSessionsToGetWaiters(boost::container::vector<Callback> &postLockAct
 	std::swap(getWaitlist, newWaitlist);
 }
 
-bool
+inline bool
 Pool::requestTimedOut(const GetWaiter &waiter) {
-	posix_time::time_duration diff = boost::posix_time::microsec_clock::local_time() - waiter.startTime;
-	return(! OXT_LIKELY( (waiter.options.maxRequestQueueTime == 0) || (diff.total_milliseconds() < waiter.options.maxRequestQueueTime) ));
+	if (OXT_LIKELY(waiter.options.maxRequestQueueTime == 0)) {
+		return false;
+	} else {
+		posix_time::time_duration diff = boost::posix_time::microsec_clock::local_time() - waiter.startTime;
+		return (!OXT_LIKELY(diff.total_milliseconds() < waiter.options.maxRequestQueueTime));
+	}
 }
 
 template<typename Queue>

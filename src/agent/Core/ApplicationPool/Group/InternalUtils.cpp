@@ -349,12 +349,18 @@ Group::callAbortLongRunningConnectionsCallback(const ProcessPtr &process) {
 	}
 }
 
-bool
+inline bool
 Group::requestTimedOut(const GetWaiter &waiter) {
-	posix_time::time_duration diff = boost::posix_time::microsec_clock::local_time() - waiter.startTime;
-	return(!OXT_LIKELY(!testTimeoutRequestQueue()
-		&& (options.maxRequestQueueTime == 0
-		|| diff.total_milliseconds() < options.maxRequestQueueTime)));
+	if (OXT_LIKELY(!testTimeoutRequestQueue())) {
+		if (OXT_LIKELY(options.maxRequestQueueTime == 0)) {
+			return false;
+		} else {
+			posix_time::time_duration diff = boost::posix_time::microsec_clock::local_time() - waiter.startTime;
+			return (!OXT_LIKELY(diff.total_milliseconds() < options.maxRequestQueueTime));
+		}
+	} else {
+		return true;
+	}
 }
 
 void
